@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sector Flow">
+<meta name="theme-color" content="#06080F">
+<title>Sector Flow</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{background:#06080F;color:#E2E8F0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top)}
+.mono{font-family:'Menlo','Courier New',monospace}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes flashG{from{background:#10D97E1E}to{background:transparent}}
+@keyframes flashR{from{background:#FF4D4F1E}to{background:transparent}}
+.slide{animation:slideIn .22s ease}
+.sup{animation:slideUp .2s ease}
+.fg{animation:flashG .8s ease}
+.fr{animation:flashR .8s ease}
+.row{-webkit-user-select:none;user-select:none;transition:background .08s}
+.row:active{background:#0D1828!important}
+.tbtn{border:none;cursor:pointer;font-weight:600;-webkit-user-select:none;transition:.1s}
+::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const ICONS={'반도체':'💾','AI/소프트웨어':'🤖','바이오/헬스케어':'🧬','금융':'🏦','에너지':'⚡','자동차/EV':'🚗','방산':'🛡️','소비재':'🛒','부동산':'🏢','원자재':'⛏️'};
+const ETF={'반도체':{us:[{t:'SOXX',n:'iShares 반도체 ETF'},{t:'SMH',n:'VanEck 반도체 ETF'}],kr:[{t:'091160',n:'KODEX 반도체'},{t:'381180',n:'TIGER 반도체'}]},'AI/소프트웨어':{us:[{t:'AIQ',n:'Global X AI & Tech'},{t:'BOTZ',n:'로보틱스 & AI'}],kr:[{t:'396500',n:'KODEX AI테크놀로지'},{t:'448920',n:'TIGER Fn AI'}]},'바이오/헬스케어':{us:[{t:'XLV',n:'헬스케어 Select SPDR'},{t:'IBB',n:'iShares 바이오테크'}],kr:[{t:'143460',n:'KODEX 바이오'},{t:'227830',n:'TIGER 헬스케어'}]},'금융':{us:[{t:'XLF',n:'Financial Select SPDR'},{t:'KBE',n:'SPDR 은행 ETF'}],kr:[{t:'091220',n:'KODEX 은행'},{t:'139270',n:'TIGER 금융'}]},'에너지':{us:[{t:'XLE',n:'Energy Select SPDR'},{t:'OIH',n:'오일서비스 ETF'}],kr:[{t:'117460',n:'KODEX 에너지화학'}]},'자동차/EV':{us:[{t:'DRIV',n:'글로벌 X 자율주행 EV'},{t:'LIT',n:'리튬 & 배터리 ETF'}],kr:[{t:'091230',n:'KODEX 자동차'},{t:'305720',n:'TIGER EV'}]},'방산':{us:[{t:'ITA',n:'iShares 미국 방산'},{t:'XAR',n:'SPDR 항공 & 방산'}],kr:[{t:'273130',n:'KODEX K-방산'}]},'소비재':{us:[{t:'XLY',n:'임의소비재 SPDR'},{t:'XLP',n:'필수소비재 SPDR'}],kr:[{t:'228800',n:'KODEX 소비재'}]},'부동산':{us:[{t:'VNQ',n:'Vanguard 부동산'},{t:'IYR',n:'iShares 미국 부동산'}],kr:[{t:'352560',n:'TIGER 리츠부동산인프라'}]},'원자재':{us:[{t:'XLB',n:'Materials Select SPDR'},{t:'GLD',n:'SPDR 금 ETF'}],kr:[{t:'132030',n:'KODEX 골드선물(H)'},{t:'139310',n:'TIGER 원자재'}]}};
+const DATA={market_sentiment:'bullish',market_summary:'AI·반도체 섹터 강세, 에너지·부동산 자금 이탈 지속',sectors:[
+{name:'반도체',flow:'inflow',strength:5,change_pct:'+3.21',reason:'엔비디아 실적 호조, AI 수요 급증',news:'NVDA Q2 실적 예상치 30% 상회 — AI 칩 공급 부족 심화',stocks:[{ticker:'NVDA',name:'NVIDIA Corp',change_pct:'+4.21',market:'US'},{ticker:'AMD',name:'Advanced Micro Devices',change_pct:'+3.12',market:'US'},{ticker:'005930',name:'삼성전자',change_pct:'+1.23',market:'KR'},{ticker:'000660',name:'SK하이닉스',change_pct:'+2.87',market:'KR'},{ticker:'AVGO',name:'Broadcom',change_pct:'+2.45',market:'US'},{ticker:'AMAT',name:'Applied Materials',change_pct:'+1.98',market:'US'}]},
+{name:'AI/소프트웨어',flow:'inflow',strength:4,change_pct:'+2.14',reason:'빅테크 AI 인프라 투자 확대',news:'MS·구글, AI 데이터센터에 $100B 추가 투자 발표',stocks:[{ticker:'MSFT',name:'Microsoft',change_pct:'+1.87',market:'US'},{ticker:'GOOGL',name:'Alphabet',change_pct:'+1.54',market:'US'},{ticker:'META',name:'Meta Platforms',change_pct:'+2.33',market:'US'},{ticker:'035420',name:'NAVER',change_pct:'+0.87',market:'KR'},{ticker:'CRM',name:'Salesforce',change_pct:'+1.12',market:'US'}]},
+{name:'방산',flow:'inflow',strength:3,change_pct:'+1.43',reason:'지정학 리스크 지속, 방위비 확대',news:'NATO 회원국 GDP 3% 방위비 지출 합의 추진',stocks:[{ticker:'LMT',name:'Lockheed Martin',change_pct:'+1.21',market:'US'},{ticker:'RTX',name:'RTX Corp',change_pct:'+0.98',market:'US'},{ticker:'273130',name:'한화에어로스페이스',change_pct:'+2.34',market:'KR'},{ticker:'012450',name:'한화시스템',change_pct:'+1.87',market:'KR'},{ticker:'NOC',name:'Northrop Grumman',change_pct:'+1.43',market:'US'}]},
+{name:'금융',flow:'inflow',strength:2,change_pct:'+0.72',reason:'Fed 금리 인하 기대감 상승',news:'Fed 의사록 완화적 기조 확인, 연내 2회 인하 전망',stocks:[{ticker:'JPM',name:'JPMorgan Chase',change_pct:'+0.65',market:'US'},{ticker:'GS',name:'Goldman Sachs',change_pct:'+0.82',market:'US'},{ticker:'105560',name:'KB금융',change_pct:'+0.43',market:'KR'},{ticker:'055550',name:'신한지주',change_pct:'+0.38',market:'KR'},{ticker:'BAC',name:'Bank of America',change_pct:'+0.54',market:'US'}]},
+{name:'에너지',flow:'outflow',strength:4,change_pct:'-2.13',reason:'유가 하락, OPEC+ 증산 우려',news:'국제유가 배럴당 $72 붕괴 — OPEC+ 증산 협의 소식',stocks:[{ticker:'XOM',name:'Exxon Mobil',change_pct:'-2.34',market:'US'},{ticker:'CVX',name:'Chevron',change_pct:'-1.87',market:'US'},{ticker:'010950',name:'S-Oil',change_pct:'-1.54',market:'KR'},{ticker:'COP',name:'ConocoPhillips',change_pct:'-2.01',market:'US'},{ticker:'SLB',name:'SLB (Schlumberger)',change_pct:'-1.67',market:'US'}]},
+{name:'부동산',flow:'outflow',strength:3,change_pct:'-1.52',reason:'고금리 장기화, 상업용 부동산 부담',news:'미국 오피스 공실률 사상 최고치 — 리츠 자금 이탈',stocks:[{ticker:'AMT',name:'American Tower',change_pct:'-1.23',market:'US'},{ticker:'PLD',name:'Prologis',change_pct:'-1.67',market:'US'},{ticker:'352560',name:'롯데리츠',change_pct:'-0.78',market:'KR'},{ticker:'VNQ',name:'Vanguard REIT ETF',change_pct:'-1.34',market:'US'}]},
+{name:'바이오/헬스케어',flow:'outflow',strength:3,change_pct:'-1.24',reason:'FDA 규제 강화, 임상 실패 악재',news:'주요 항암제 임상 3상 실패 — 섹터 전반 약세',stocks:[{ticker:'JNJ',name:'Johnson & Johnson',change_pct:'-0.87',market:'US'},{ticker:'PFE',name:'Pfizer',change_pct:'-1.45',market:'US'},{ticker:'207940',name:'삼성바이오로직스',change_pct:'-0.92',market:'KR'},{ticker:'068270',name:'셀트리온',change_pct:'-1.23',market:'KR'},{ticker:'MRK',name:'Merck',change_pct:'-0.76',market:'US'}]},
+{name:'소비재',flow:'outflow',strength:2,change_pct:'-0.63',reason:'소매판매 둔화, 소비심리 위축',news:'5월 소매판매 전월 대비 -0.3% — 예상치 하회',stocks:[{ticker:'AMZN',name:'Amazon',change_pct:'-0.32',market:'US'},{ticker:'TSLA',name:'Tesla',change_pct:'-2.14',market:'US'},{ticker:'005380',name:'현대차',change_pct:'+0.44',market:'KR'},{ticker:'TGT',name:'Target',change_pct:'-0.98',market:'US'},{ticker:'WMT',name:'Walmart',change_pct:'-0.21',market:'US'}]},
+{name:'자동차/EV',flow:'outflow',strength:2,change_pct:'-0.87',reason:'EV 수요 둔화, 배터리 원가 부담',news:'테슬라 글로벌 판매 3분기 연속 감소',stocks:[{ticker:'TSLA',name:'Tesla',change_pct:'-2.14',market:'US'},{ticker:'GM',name:'General Motors',change_pct:'-0.76',market:'US'},{ticker:'000270',name:'기아',change_pct:'+0.23',market:'KR'},{ticker:'F',name:'Ford Motor',change_pct:'-1.12',market:'US'},{ticker:'373220',name:'LG에너지솔루션',change_pct:'-1.43',market:'KR'}]},
+{name:'원자재',flow:'outflow',strength:1,change_pct:'-0.31',reason:'달러 강세, 글로벌 수요 둔화',news:'달러인덱스 강세에 원자재 전반 소폭 약세',stocks:[{ticker:'FCX',name:'Freeport-McMoRan',change_pct:'-0.54',market:'US'},{ticker:'NEM',name:'Newmont',change_pct:'-0.32',market:'US'},{ticker:'010130',name:'고려아연',change_pct:'-0.21',market:'KR'},{ticker:'BHP',name:'BHP Group',change_pct:'-0.43',market:'US'}]},
+]};
+let S={mainTab:'inflow',view:'sectors',selSector:null,cfg:{interval:10,strength:4,notif:true},alerts:[]};
+let _ct=null,_tick=null,_next=null,_unread=0;
+function $(id){return document.getElementById(id)}
+function mkt(){
+  const now=new Date();
+  function local(tz){try{const s=now.toLocaleString('en-US',{timeZone:tz,hour12:false,hour:'2-digit',minute:'2-digit',weekday:'short'});const[wd,time]=s.split(', ');const[h,m]=time.split(':').map(Number);return{h,m,d:{Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[wd]??1,str:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`};}catch{return{h:9,m:0,d:1,str:'--:--'};}}
+  const kr=local('Asia/Seoul'),us=local('America/New_York'),kt=kr.h*60+kr.m,ut=us.h*60+us.m;
+  return{kr:{open:kr.d>=1&&kr.d<=5&&kt>=540&&kt<930,time:kr.str+' KST'},us:{open:us.d>=1&&us.d<=5&&ut>=570&&ut<960,pre:us.d>=1&&us.d<=5&&ut>=240&&ut<570,time:us.str+' ET'}};
+}
+function load(){try{const a=localStorage.getItem('sfa');if(a)S.alerts=JSON.parse(a);}catch(e){}try{const c=localStorage.getItem('sfc');if(c)S.cfg={...S.cfg,...JSON.parse(c)};}catch(e){}}
+function save(){try{localStorage.setItem('sfa',JSON.stringify(S.alerts.slice(0,50)));}catch(e){}try{localStorage.setItem('sfc',JSON.stringify(S.cfg));}catch(e){}}
+async function askNotif(){if('Notification'in window&&Notification.permission==='default')try{await Notification.requestPermission();}catch(e){}}
+function startCountdown(){
+  clearInterval(_ct);_next=Date.now()+S.cfg.interval*60000;
+  _ct=setInterval(()=>{const rem=Math.max(0,(_next||Date.now())-Date.now()),mm=Math.floor(rem/60000),ss=Math.floor((rem%60000)/1000),el=$('cd');if(el)el.textContent=`${mm}:${String(ss).padStart(2,'0')}`;},1000);
+}
+function startTick(){
+  clearInterval(_tick);
+  _tick=setInterval(()=>{document.querySelectorAll('.stchg').forEach(el=>{const base=parseFloat(el.dataset.base)||0,v=+(base+(Math.random()-.5)*0.18).toFixed(2),isUp=v>=0,c=isUp?'#10D97E':'#FF4D4F';el.textContent=(isUp?'+':'')+v.toFixed(2)+'%';el.style.color=c;const row=el.closest('.strow');if(row){row.classList.remove('fg','fr');void row.offsetWidth;row.classList.add(isUp?'fg':'fr');}});},2800);
+}
+function render(){const app=$('app');if(!app)return;const ms=mkt();app.innerHTML=rHeader(ms)+rMain();attachEv();startTick();}
+function mPill(flag,m){const color=m.open?'#10D97E':m.pre?'#F59E0B':'#2A3A55',label=m.open?'OPEN':m.pre?'PRE':'CLOSED';return`<div style="display:flex;align-items:center;gap:4px;padding:3px 9px;background:#080C18;border:1px solid ${color}30;border-radius:6px"><div style="width:5px;height:5px;border-radius:50%;background:${color}"></div><span class="mono" style="font-size:9px;color:${color}">${flag} ${label}</span><span class="mono" style="font-size:8px;color:#2A3A55">${m.time}</span></div>`;}
+function rHeader(ms){
+  const sc={bullish:'#10D97E',bearish:'#FF4D4F',neutral:'#8B9DC0'},sl={bullish:'강세장',bearish:'약세장',neutral:'중립'},senti=DATA.market_sentiment,cc=sc[senti]||'#8B9DC0';
+  return`<div style="border-bottom:1px solid #131E30;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;background:#06080F;position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="width:7px;height:7px;border-radius:50%;background:#10D97E;flex-shrink:0"></div>
+      <span class="mono" style="font-size:13px;font-weight:700;letter-spacing:2px">SECTOR FLOW</span>
+      <span class="mono" style="font-size:9px;color:${cc};background:${cc}18;border:1px solid ${cc}35;border-radius:4px;padding:2px 7px">${sl[senti]||''}</span>
+      <div style="display:flex;gap:4px">${mPill('🇰🇷',ms.kr)}${mPill('🇺🇸',ms.us)}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="mono" style="font-size:9px;color:#2A3A55">갱신</span><span id="cd" class="mono" style="font-size:9px;color:#3B5A8A;min-width:28px"></span>
+      <button id="notifBtn" style="background:none;border:none;cursor:pointer;font-size:17px;position:relative;padding:2px">🔔<span id="nbadge" style="display:${_unread>0?'flex':'none'};position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:#FF4D4F;font-size:8px;font-family:monospace;align-items:center;justify-content:center;color:#fff">${_unread>9?'9+':_unread||''}</span></button>
+      <button id="settingsBtn" style="background:none;border:none;cursor:pointer;font-size:17px;padding:2px">⚙️</button>
+    </div>
+  </div>`;
+}
+function rMain(){if(S.view==='stocks')return rStockView();if(S.view==='alerts')return rAlertsView();if(S.view==='settings')return rSettingsView();return rSectorView();}
+function rSubHeader(title,badge=''){return`<div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #131E30;background:#080C18;position:sticky;top:57px;z-index:9"><button id="backBtn" style="background:none;border:none;color:#5A7099;cursor:pointer;font-size:14px;padding:4px 10px 4px 0">← 목록</button><div style="width:1px;height:14px;background:#131E30"></div><span style="font-size:14px;font-weight:600;color:#E2E8F0">${title}</span>${badge?`<span class="mono" style="font-size:11px;color:#3B5A8A;margin-left:auto">${badge}</span>`:''}</div>`;}
+function rSectorView(){
+  const isIn=S.mainTab==='inflow',sectors=DATA.sectors.filter(s=>s.flow===S.mainTab).sort((a,b)=>b.strength-a.strength),inCnt=DATA.sectors.filter(s=>s.flow==='inflow').length,outCnt=DATA.sectors.filter(s=>s.flow==='outflow').length;
+  return`<div class="sup"><div style="display:flex;border-bottom:2px solid #131E30;background:#080C18"><button class="tbtn" id="tab-in" style="flex:1;padding:14px 4px;font-size:14px;background:${isIn?'#06080F':'transparent'};color:${isIn?'#10D97E':'#4A5A70'};border-bottom:2px solid ${isIn?'#10D97E':'transparent'};margin-bottom:-2px">📈 자금 유입<span style="font-size:11px;display:block;font-weight:400;opacity:.7;margin-top:1px">${inCnt}개 섹터</span></button><div style="width:1px;background:#131E30;margin:8px 0"></div><button class="tbtn" id="tab-out" style="flex:1;padding:14px 4px;font-size:14px;background:${!isIn?'#06080F':'transparent'};color:${!isIn?'#FF4D4F':'#4A5A70'};border-bottom:2px solid ${!isIn?'#FF4D4F':'transparent'};margin-bottom:-2px">📉 자금 유출<span style="font-size:11px;display:block;font-weight:400;opacity:.7;margin-top:1px">${outCnt}개 섹터</span></button></div><div>${sectors.map((s,i)=>rSectorRow(s,i,isIn)).join('')}</div><div style="padding:10px 14px;border-top:1px solid #0E1825;background:#080C18;padding-bottom:max(10px,env(safe-area-inset-bottom))"><p style="font-size:12px;color:#3B5070;line-height:1.6"><span style="color:#3B82F6">시장 ›</span> ${DATA.market_summary}</p></div></div>`;
+}
+function rSectorRow(s,rank,isIn){
+  const c=isIn?'#10D97E':'#FF4D4F',ic=ICONS[s.name]||'📊',barW=Math.round(s.strength/5*100);
+  const top=(s.stocks||[]).slice(0,3).map(st=>`<span class="mono" style="font-size:9px;color:${c}90;background:${c}0E;border-radius:3px;padding:2px 5px">${st.ticker}</span>`).join('');
+  const more=Math.max(0,(s.stocks||[]).length-3);
+  return`<div class="row sec-row" data-name="${s.name}" style="padding:14px;border-bottom:1px solid #0C1520;background:#06080F"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="width:26px;height:26px;border-radius:8px;background:${c}16;border:1px solid ${c}28;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="mono" style="font-size:11px;color:${c};font-weight:700">${rank+1}</span></div><span style="font-size:18px;flex-shrink:0">${ic}</span><div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;font-weight:600;color:#E2E8F0">${s.name}</span><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><span class="mono" style="font-size:16px;color:${c};font-weight:700">${s.change_pct}%</span><span style="color:#2A3A55;font-size:18px">›</span></div></div></div><div style="margin-left:36px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="flex:1;height:3px;background:#0E1825;border-radius:2px;overflow:hidden"><div style="height:100%;width:${barW}%;background:${c};border-radius:2px"></div></div><div style="display:flex;gap:3px">${Array.from({length:5},(_,i)=>`<div style="width:6px;height:6px;border-radius:50%;background:${i<s.strength?c:'#131E30'}"></div>`).join('')}</div></div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><p style="font-size:12px;color:#3B5070;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.reason}</p><div style="display:flex;align-items:center;gap:3px;flex-shrink:0">${top}${more>0?`<span style="font-size:9px;color:#2A3A55">+${more}</span>`:''}</div></div></div></div>`;
+}
+function rStockView(){
+  const sec=DATA.sectors.find(s=>s.name===S.selSector);if(!sec)return'';
+  const isIn=sec.flow==='inflow',c=isIn?'#10D97E':'#FF4D4F',stocks=sec.stocks||[],etfD=ETF[sec.name]||{us:[],kr:[]},maxAbs=Math.max(...stocks.map(s=>Math.abs(parseFloat(s.change_pct)||0)),0.1);
+  return`<div class="slide">${rSubHeader(`${ICONS[sec.name]||'📊'} ${sec.name}`,`${stocks.length}개 종목`)}<div style="padding:9px 14px;background:#07090D;border-bottom:1px solid #0E1825"><p style="font-size:12px;color:#3B5070;line-height:1.55">📰 ${sec.news}</p></div><div style="display:grid;grid-template-columns:30px 1fr 36px 82px;padding:7px 14px;border-bottom:1px solid #131E30;background:#080C18;gap:6px"><span class="mono" style="font-size:9px;color:#2A3A55">순위</span><span class="mono" style="font-size:9px;color:#2A3A55">종목</span><span class="mono" style="font-size:9px;color:#2A3A55;text-align:center">시장</span><span class="mono" style="font-size:9px;color:#2A3A55;text-align:right">실시간 등락률</span></div><div>${stocks.map((st,i)=>{const v=parseFloat(st.change_pct)||0,isUp=v>=0,sc=isUp?'#10D97E':'#FF4D4F',bw=Math.round(Math.abs(v)/maxAbs*100);return`<div class="row strow" style="display:grid;grid-template-columns:30px 1fr 36px 82px;padding:13px 14px;border-bottom:1px solid #0C1520;background:#06080F;gap:6px;align-items:center"><div style="width:24px;height:24px;border-radius:7px;background:${c}12;display:flex;align-items:center;justify-content:center"><span class="mono" style="font-size:10px;color:${c};font-weight:700">${i+1}</span></div><div><div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span class="mono" style="font-size:14px;color:#E2E8F0;font-weight:700">${st.ticker}</span>${i===0?`<span style="font-size:9px;background:${c}20;color:${c};border-radius:4px;padding:2px 6px;font-weight:600">HOT</span>`:''}</div><span style="font-size:11px;color:#2A3A55;display:block;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${st.name}</span><div style="height:2px;background:#0E1825;border-radius:1px;overflow:hidden;max-width:140px"><div style="height:100%;width:${bw}%;background:${sc};border-radius:1px"></div></div></div><div style="text-align:center;font-size:18px">${st.market==='KR'?'🇰🇷':'🇺🇸'}</div><div style="text-align:right"><span class="mono stchg" data-base="${v}" style="font-size:15px;color:${sc};font-weight:700">${isUp?'+':''}${v.toFixed(2)}%</span></div></div>`;}).join('')}</div><div style="padding:14px;border-top:1px solid #131E30;background:#07090D;padding-bottom:max(14px,env(safe-area-inset-bottom))"><p class="mono" style="font-size:9px;color:#2A3A55;letter-spacing:1px;margin-bottom:10px">관련 ETF</p><div style="display:flex;flex-wrap:wrap;gap:6px">${[...etfD.us.map(e=>({...e,kr:false})),...etfD.kr.map(e=>({...e,kr:true}))].map(e=>`<div style="padding:7px 11px;background:#080C18;border:1px solid ${e.kr?'#1A3026':'#1A2A40'};border-radius:8px;display:flex;align-items:center;gap:6px"><span style="font-size:11px">${e.kr?'🇰🇷':'🇺🇸'}</span><span class="mono" style="font-size:12px;color:${e.kr?'#34D399':'#60A5FA'};font-weight:700">${e.t}</span><span style="font-size:11px;color:#3B5070">${e.n}</span></div>`).join('')}</div></div></div>`;
+}
+function rAlertsView(){
+  _unread=0;const b=$('nbadge');if(b)b.style.display='none';
+  return`<div class="sup">${rSubHeader('🔔 알림 기록',`${S.alerts.length}건`)}${S.alerts.length?S.alerts.slice(0,30).map(a=>`<div style="padding:12px 14px;border-bottom:1px solid #0C1520"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px"><span style="font-size:13px;font-weight:500;color:#E2E8F0">${a.title}</span><span class="mono" style="font-size:9px;color:#2A3A55;margin-left:8px;flex-shrink:0">${a.ts}</span></div><p style="font-size:12px;color:#3B5070">${a.body}</p></div>`).join(''):`<div style="display:flex;align-items:center;justify-content:center;height:220px"><p class="mono" style="font-size:12px;color:#2A3A55">알림 기록이 없습니다</p></div>`}</div>`;
+}
+function rSettingsView(){
+  const ns='Notification'in window?Notification.permission==='granted'?'✓ 허용됨':Notification.permission==='denied'?'✗ 설정에서 허용 필요':'권한 미설정':'미지원';
+  return`<div class="sup">${rSubHeader('⚙️ 설정')}<div style="padding:16px 14px;display:flex;flex-direction:column;gap:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))"><div><p style="font-size:12px;color:#5A7099;margin-bottom:10px">자동 갱신 표시 주기</p><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${[5,10,15,30].map(v=>`<button class="int-btn" data-v="${v}" style="padding:11px 4px;background:${S.cfg.interval===v?'#0D1829':'#080C18'};border:1px solid ${S.cfg.interval===v?'#3B82F6':'#131E30'};border-radius:10px;color:${S.cfg.interval===v?'#60A5FA':'#5A7099'};font-family:Menlo,monospace;font-size:13px;cursor:pointer">${v}분</button>`).join('')}</div></div><div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><p style="font-size:12px;color:#5A7099">알림 강도 기준</p><span class="mono" style="font-size:13px;color:#60A5FA">강도 <span id="sv">${S.cfg.strength}</span> 이상</span></div><input type="range" id="sr" min="1" max="5" value="${S.cfg.strength}" style="accent-color:#3B82F6;width:100%"></div><div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:#080C18;border:1px solid #131E30;border-radius:10px"><div><p style="font-size:13px;color:#E2E8F0;margin-bottom:3px">알림 사용</p><p style="font-size:11px;color:#4A5A70">${ns}</p></div><input type="checkbox" id="nchk" ${S.cfg.notif?'checked':''} style="accent-color:#3B82F6;width:20px;height:20px;cursor:pointer"></div><button id="saveCfg" style="padding:13px;background:#0D1829;border:1px solid #3B82F6;border-radius:10px;color:#60A5FA;font-family:Menlo,monospace;font-size:13px;cursor:pointer">✓ 저장 & 적용</button><div style="padding:12px;background:#080C18;border:1px solid #131E30;border-radius:10px"><p class="mono" style="font-size:10px;color:#2A3A55;margin-bottom:6px">앱 정보</p><p style="font-size:12px;color:#3B5070;line-height:1.7">Sector Flow v1.0 · AI 분석 없이 작동<br>샘플 데이터 · 실시간 종목 틱 시뮬레이션<br>아이폰 PWA 최적화</p></div></div></div>`;
+}
+function attachEv(){
+  $('notifBtn')?.addEventListener('click',()=>{S.view='alerts';render();});
+  $('settingsBtn')?.addEventListener('click',()=>{S.view='settings';render();});
+  $('backBtn')?.addEventListener('click',()=>{S.view='sectors';S.selSector=null;render();});
+  $('tab-in')?.addEventListener('click',()=>{S.mainTab='inflow';render();});
+  $('tab-out')?.addEventListener('click',()=>{S.mainTab='outflow';render();});
+  document.querySelectorAll('.sec-row').forEach(el=>el.addEventListener('click',()=>{S.selSector=el.dataset.name;S.view='stocks';render();}));
+  document.querySelectorAll('.int-btn').forEach(b=>b.addEventListener('click',()=>{S.cfg.interval=parseInt(b.dataset.v);render();}));
+  const sr=$('sr');if(sr)sr.addEventListener('input',e=>{S.cfg.strength=parseInt(e.target.value);const sv=$('sv');if(sv)sv.textContent=S.cfg.strength;});
+  const nc=$('nchk');if(nc)nc.addEventListener('change',async e=>{S.cfg.notif=e.target.checked;if(e.target.checked)await askNotif();});
+  $('saveCfg')?.addEventListener('click',()=>{save();startCountdown();const b=$('saveCfg');if(b){b.textContent='✓ 저장됨';b.style.color='#10D97E';setTimeout(()=>{if(b){b.textContent='✓ 저장 & 적용';b.style.color='#60A5FA';}},1500);}});
+}
+function init(){load();render();startCountdown();askNotif();}
+init();
+</script>
+</body>
+</html>
